@@ -124,21 +124,21 @@ realpath mcpServer.js
 
 ### Option B — HTTP Server (for remote / multi-user access)
 
-Run the server in SSE mode to expose it over HTTP. Useful for Heroku, Docker, or any remote deployment.
+Run the server in Streamable HTTP mode to expose it over HTTP. Useful for Docker, cloud deployments, or any remote setup.
 
 ```sh
 npm start
-# or: node mcpServer.js --sse
+# or: node mcpServer.js --http
 ```
 
-The server starts on `PORT` (default `3001`, overridden by the `PORT` environment variable).
+The server starts on `PORT` (default `3001`, overridden by the `PORT` environment variable) and listens on `POST /mcp` per the current MCP specification.
 
 **Claude Desktop with HTTP server:**
 ```json
 {
   "mcpServers": {
     "tallyprime": {
-      "url": "http://localhost:3001/sse"
+      "url": "http://localhost:3001/mcp"
     }
   }
 }
