@@ -1,6 +1,6 @@
 # TallyPrime MCP Server
 
-> Connect Claude (and any MCP-compatible AI) directly to a live TallyPrime instance. Query ledgers, pull vouchers, run reports, and interrogate your books in plain English — no exports, no copy-paste.
+> Connect Claude, ChatGPT, Codex, Perplexity, and any MCP-compatible AI directly to a live TallyPrime instance. Query ledgers, pull vouchers, run reports, and interrogate your books in plain English — no exports, no copy-paste.
 
 Built by [Smeet Somaiya](https://github.com/smeetsomaiya) · MIT License · Contributions welcome
 
@@ -8,7 +8,7 @@ Built by [Smeet Somaiya](https://github.com/smeetsomaiya) · MIT License · Cont
 
 ## What This Is
 
-[TallyPrime](https://tallysolutions.com/) is the dominant accounting software in India. It exposes a local XML/HTTP API that lets external programs query live company data. This project wraps that API as an [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server, making every piece of your Tally data accessible to Claude and other AI clients.
+[TallyPrime](https://tallysolutions.com/) is the dominant accounting software in India. It exposes a local XML/HTTP API that lets external programs query live company data. This project wraps that API as an [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server, making every piece of your Tally data accessible to Claude, ChatGPT, Codex, Perplexity, and any other MCP-compatible AI client.
 
 Once connected, you can ask things like:
 
@@ -28,44 +28,75 @@ The AI figures out which tool to call, with which parameters, and interprets the
 
 The server communicates with Tally over HTTP on a local port (default: `9000`). You must enable this in TallyPrime:
 
-1. Open TallyPrime → press **F12** (Configure)
-2. Navigate to **Advanced Configuration**
-3. Under **TDL & Add-on** (or **Connectivity**), enable **"Enable ODBC Server"** or **"Enable TDL Server"** depending on your version
-4. Set the port to `9000` (or any port you prefer — update `.env` to match)
-5. Save and restart Tally
+1. Open TallyPrime → press **F1** (Help) → **Settings**
+2. Go to **Connectivity → Client/Server configuration**
+3. Set **TallyPrime acts as** = `Server`
+4. Set **Port** = `9000` (or any port you prefer — update `.env` to match)
+5. Press **Enter** to save — no restart needed
 
-> **Verify it works:** Open a browser and go to `http://localhost:9000`. You should see a Tally response page or XML output — not a "connection refused" error.
+> **Verify it works:** Open a browser and go to `http://localhost:9000`. You should see a Tally XML response — not a "connection refused" error.
+
+> **Note:** Avoid the Educational version of TallyPrime. It has date range restrictions that cause incomplete or incorrect data to be returned to the AI.
 
 ### 2. Node.js v18+
 
-Download from [nodejs.org](https://nodejs.org/). Verify with:
+Go to [nodejs.org](https://nodejs.org/) and click **Download Node.js (LTS)**. Run the `.msi` installer and click through — all defaults are fine. This installs both Node.js and npm in one go.
 
-```sh
-node --version   # should print v18.x or higher
+Once done, open a fresh Command Prompt and confirm it worked:
+
+```cmd
+node --version
 ```
+
+It should print `v18.x` or higher.
 
 ---
 
-## Quick Start
+## Download & Setup
 
-```sh
-# 1. Clone the repo
-git clone https://github.com/smeetsomaiya/tallyprime-mcp-server.git
-cd tallyprime-mcp-server
+### Step 1 — Download
 
-# 2. Install dependencies
-npm install
+Go to [github.com/smeetsomaiya/tallyprime-mcp-server](https://github.com/smeetsomaiya/tallyprime-mcp-server), click the green **Code** button, and select **Download ZIP**.
 
-# 3. Configure Tally connection
-#    Edit .env to match your Tally setup (defaults work for a standard local install)
-#    TALLY_URL=http://localhost
-#    TALLY_PORT=9000
-
-# 4. Verify Tally is reachable and tools load
-npm run list-tools
-
-# 5. Connect to Claude Desktop (see below)
+Extract the ZIP to a folder on your computer — for example:
 ```
+C:\Users\YourName\Documents\tallyprime-mcp-server
+```
+
+### Step 2 — Open a terminal in that folder
+
+In **File Explorer**, navigate to the extracted folder. Click the **address bar** at the top (where it shows the folder path), type `cmd`, and press **Enter**. This opens a Command Prompt already inside the folder.
+
+### Step 3 — Install dependencies
+
+In the Command Prompt window, run:
+
+```cmd
+npm install
+```
+
+This downloads the required packages. It takes about a minute and only needs to be done once.
+
+### Step 4 — Configure the Tally connection
+
+Open the `.env` file in the folder with Notepad. The defaults work if Tally is running on the same computer:
+
+```
+TALLY_URL=http://localhost
+TALLY_PORT=9000
+```
+
+Change `TALLY_URL` to the IP address of the Tally machine if it runs on a different computer on your network.
+
+### Step 5 — Verify everything is working
+
+With TallyPrime open and its XML server enabled, run:
+
+```cmd
+npm run list-tools
+```
+
+You should see a list of 24 tools printed without any errors. If you see a connection error, check that the Tally XML server is enabled (see Prerequisites above).
 
 ---
 
@@ -87,86 +118,108 @@ TALLY_PORT=9000              # change if you configured a non-default port in Ta
 
 ---
 
-## Connecting to Claude
+## Supported Clients
 
-### Option A — Claude Desktop (Recommended for local use)
+| Platform | Local setup | Remote / Cloud |
+|----------|:-----------:|:--------------:|
+| Claude Desktop | ✅ | ✅ |
+| Perplexity Desktop | ✅ | ✅ |
+| ChatGPT | | ✅ |
+| Codex | | ✅ |
 
-This runs the server in **stdio mode** — Claude Desktop launches it as a subprocess. No network port needed.
+**Local setup** means the MCP server runs on the same Windows machine as TallyPrime — no internet required. **Remote / Cloud** means the server is hosted somewhere and accessed over HTTP (see [HTTP Server mode](#http-server-mode) below).
 
-**Step 1:** Find your Node path:
-```sh
-which node
-# e.g. /opt/homebrew/bin/node
+---
+
+## Local Setup — Claude Desktop
+
+This is the recommended setup for most users. Claude Desktop launches the MCP server automatically in the background.
+
+### Step 1 — Find your Node.js path
+
+Open a Command Prompt and run:
+
+```cmd
+where node
 ```
 
-**Step 2:** Find the absolute path to `mcpServer.js`:
-```sh
-realpath mcpServer.js
-# e.g. /Users/you/tallyprime-mcp-server/mcpServer.js
+Copy the path it prints. It will look something like:
+```
+C:\Program Files\nodejs\node.exe
 ```
 
-**Step 3:** Open Claude Desktop → **Settings → Developers → Edit Config** and add:
+### Step 2 — Find the full path to `mcpServer.js`
+
+In the same Command Prompt window, navigate to the folder where you extracted the files and run:
+
+```cmd
+echo %cd%\mcpServer.js
+```
+
+Copy that full path. It will look something like:
+```
+C:\Users\YourName\Documents\tallyprime-mcp-server\mcpServer.js
+```
+
+### Step 3 — Edit the Claude Desktop config
+
+Open File Explorer and paste the following into the address bar, then press **Enter**:
+```
+%APPDATA%\Claude
+```
+
+Open `claude_desktop_config.json` with Notepad. Add the `tallyprime` block below — substituting your two paths from above:
 
 ```json
 {
   "mcpServers": {
     "tallyprime": {
-      "command": "/opt/homebrew/bin/node",
-      "args": ["/Users/you/tallyprime-mcp-server/mcpServer.js"]
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": ["C:\\Users\\YourName\\Documents\\tallyprime-mcp-server\\mcpServer.js"]
     }
   }
 }
 ```
 
-**Step 4:** Restart Claude Desktop. You should see the TallyPrime tools available in the tools panel.
+> **Important:** Every backslash in a Windows path must be written as `\\` in the JSON file. A single `\` will break the config silently.
+
+If the config already has other MCP servers, add `tallyprime` inside the existing `mcpServers` block — don't create a second one.
+
+### Step 4 — Restart Claude Desktop
+
+Close Claude Desktop completely (File → Exit) and reopen it. Click the tools icon — TallyPrime should appear in the list.
+
+To confirm everything is working end-to-end, ask Claude:
+
+> *"Is Tally running?"*
+
+It will call `check_tally_status` and report back. If TallyPrime is open and the XML server is enabled, you'll get a confirmation with Tally's version info.
 
 ---
 
-### Option B — HTTP Server (for remote / multi-user access)
+## Local Setup — Perplexity Desktop
 
-Run the server in Streamable HTTP mode to expose it over HTTP. Useful for Docker, cloud deployments, or any remote setup.
+Perplexity Desktop (Mac) supports local MCP with the same JSON config format as Claude Desktop. Refer to the [Perplexity MCP setup guide](https://www.perplexity.ai/help-center/en/articles/11502712-local-and-remote-mcps-for-perplexity) for the config file location, then paste the same JSON block from Step 3 above.
 
-```sh
+---
+
+## HTTP Server Mode
+
+For clients that can't run a local subprocess — **ChatGPT, Codex**, or any browser-based AI tool — you need to run the MCP server yourself and expose it over HTTP.
+
+Start the server:
+
+```cmd
 npm start
-# or: node mcpServer.js --http
 ```
 
-The server starts on `PORT` (default `3001`, overridden by the `PORT` environment variable) and listens on `POST /mcp` per the current MCP specification.
+This starts a Streamable HTTP server on port `3001`. Point your AI client to:
 
-**Claude Desktop with HTTP server:**
-```json
-{
-  "mcpServers": {
-    "tallyprime": {
-      "url": "http://localhost:3001/mcp"
-    }
-  }
-}
+```
+http://your-machine-ip:3001/mcp
 ```
 
----
-
-### Option C — Docker
-
-```sh
-# Build
-docker build -t tallyprime-mcp-server .
-
-# Run (stdio mode, for Claude Desktop)
-docker run -i --rm --env-file=.env tallyprime-mcp-server
-
-# Claude Desktop config using Docker:
-```
-```json
-{
-  "mcpServers": {
-    "tallyprime": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "--env-file=/absolute/path/to/.env", "tallyprime-mcp-server"]
-    }
-  }
-}
-```
+For cloud-hosted access (so ChatGPT or Codex can reach it), you'll need to either deploy this server to a hosting provider or expose your local port securely using a tunnel tool like [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or [ngrok](https://ngrok.com/).
 
 ---
 
@@ -258,7 +311,7 @@ docker run -i --rm --env-file=.env tallyprime-mcp-server
 
 ```
 tallyprime-mcp-server/
-├── mcpServer.js              # MCP server — handles stdio and SSE transports
+├── mcpServer.js              # MCP server — stdio (default) and Streamable HTTP (--http)
 ├── index.js                  # CLI entry point (node index.js tools)
 ├── lib/
 │   └── tools.js              # Discovers and loads all tool modules
