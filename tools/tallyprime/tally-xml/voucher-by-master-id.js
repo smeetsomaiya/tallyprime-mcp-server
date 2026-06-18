@@ -1,15 +1,6 @@
-/**
- * Function to get a voucher based on MasterID from Tally.
- *
- * @param {Object} args - Arguments for the voucher request.
- * @param {string} args.id - The MasterID of the voucher to retrieve.
- * @returns {Promise<Object>} - The result of the voucher request.
- */
-const executeFunction = async ({ id }) => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
-  const company = 'ABC Company'; // will be provided by the user
-
+const executeFunction = async ({ id, company }) => {
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
@@ -34,52 +25,47 @@ const executeFunction = async ({ id }) => {
 </ENVELOPE>`;
 
   try {
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml'
-      },
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
-    console.error('Error retrieving voucher:', error);
+    console.error('Error retrieving voucher by MasterID:', error);
     return { error: 'An error occurred while retrieving the voucher.' };
   }
 };
 
-/**
- * Tool configuration for retrieving a voucher from Tally.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
-      name: 'Voucher_ByMasterID',
-      description: 'Gets Voucher Based on MasterID from Tally.',
+      name: 'get_voucher_by_master_id',
+      description: 'Fetches a single voucher from TallyPrime by its internal MasterID, returning all voucher fields in XML. Use this when you have a MasterID from a prior list or collection result. Returns the full accounting entry including ledger entries, amounts, and narration.',
       parameters: {
         type: 'object',
         properties: {
           id: {
             type: 'string',
-            description: 'The MasterID of the voucher to retrieve.'
-          }
+            description: 'The numeric MasterID of the voucher (e.g. "12345"). Obtain this from list_vouchers or fetch_vouchers_by_type.',
+          },
+          company: {
+            type: 'string',
+            description: 'Exact company name as it appears in TallyPrime.',
+          },
         },
-        required: ['id']
-      }
-    }
-  }
+        required: ['id', 'company'],
+      },
+    },
+  },
 };
 
 export { apiTool };

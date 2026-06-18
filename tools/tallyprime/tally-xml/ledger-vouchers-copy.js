@@ -1,15 +1,6 @@
-/**
- * Function to fetch ledger vouchers from Tally.
- *
- * @param {Object} args - Arguments for the ledger vouchers request.
- * @param {string} args.Fromdate - The start date for the vouchers.
- * @param {string} args.ToDate - The end date for the vouchers.
- * @param {string} args.Company - The name of the company for which to fetch vouchers.
- * @returns {Promise<Object>} - The result of the ledger vouchers request.
- */
-const executeFunction = async ({ Fromdate, ToDate, Company }) => {
-  const TallyURL = 'http://localhost'; // base URL for Tally
-  const TallyPort = '9000'; // port for Tally
+const executeFunction = async ({ fromDate, toDate, accountGroup }) => {
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
@@ -23,14 +14,14 @@ const executeFunction = async ({ Fromdate, ToDate, Company }) => {
       <STATICVARIABLES>
         <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
         <SVViewName>Accounting Voucher View</SVViewName>
-        <SVFROMDATE>${Fromdate}</SVFROMDATE>
-        <SVTODATE TYPE="Date">${ToDate}</SVTODATE>
+        <SVFROMDATE>${fromDate}</SVFROMDATE>
+        <SVTODATE TYPE="Date">${toDate}</SVTODATE>
       </STATICVARIABLES>
       <TDL>
         <TDLMESSAGE>
           <COLLECTION ISMODIFY="No" ISFIXED="No" ISINITIALIZE="No" ISOPTION="No" ISINTERNAL="No" NAME="Vouchers">
             <TYPE>Vouchers</TYPE>
-            <Childof>${Company}</Childof>
+            <Childof>${accountGroup}</Childof>
             <NATIVEMETHOD>*</NATIVEMETHOD>
           </COLLECTION>
         </TDLMESSAGE>
@@ -40,60 +31,51 @@ const executeFunction = async ({ Fromdate, ToDate, Company }) => {
 </ENVELOPE>`;
 
   try {
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml',
-      },
+      headers: { 'Content-Type': 'application/xml' },
       body: xmlRequest,
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
-    console.error('Error fetching ledger vouchers:', error);
-    return { error: 'An error occurred while fetching ledger vouchers.' };
+    console.error('Error fetching vouchers by group:', error);
+    return { error: 'An error occurred while fetching vouchers by account group.' };
   }
 };
 
-/**
- * Tool configuration for fetching ledger vouchers from Tally.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
-      name: 'fetch_ledger_vouchers',
-      description: 'Fetch ledger vouchers from Tally.',
+      name: 'fetch_vouchers_by_group',
+      description: 'Returns all vouchers whose parent account matches the given group or ledger name (accountGroup), for a given date range, in XML format. Works for any account group — e.g. pass "Sundry Debtors" to get all sales-related vouchers, or "Bank Accounts" for bank transactions. Group name must match exactly as defined in TallyPrime.',
       parameters: {
         type: 'object',
         properties: {
-          Fromdate: {
+          fromDate: {
             type: 'string',
-            description: 'The start date for the vouchers.'
+            description: 'Period start date in YYYYMMDD format (e.g. "20240401").',
           },
-          ToDate: {
+          toDate: {
             type: 'string',
-            description: 'The end date for the vouchers.'
+            description: 'Period end date in YYYYMMDD format (e.g. "20250331").',
           },
-          Company: {
+          accountGroup: {
             type: 'string',
-            description: 'The name of the company for which to fetch vouchers.'
-          }
+            description: 'Exact name of the account group or ledger to filter by (e.g. "Sundry Debtors", "Sales Accounts", "Bank Accounts").',
+          },
         },
-        required: ['Fromdate', 'ToDate', 'Company']
-      }
-    }
-  }
+        required: ['fromDate', 'toDate', 'accountGroup'],
+      },
+    },
+  },
 };
 
 export { apiTool };

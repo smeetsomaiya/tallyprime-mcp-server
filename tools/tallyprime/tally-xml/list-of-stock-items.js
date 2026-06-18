@@ -1,12 +1,6 @@
-/**
- * Function to list stock items from Tally.
- *
- * @param {Object} args - Arguments for the stock items request.
- * @returns {Promise<Object>} - The result of the stock items request.
- */
 const executeFunction = async () => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const requestData = `
 <ENVELOPE>
     <HEADER>
@@ -32,11 +26,7 @@ const executeFunction = async () => {
 </ENVELOPE>`;
   
   try {
-    // Construct the URL
-    const url = `${TallyURL}:${TallyPort}`;
-
-    // Perform the fetch request
-    const response = await fetch(url, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -69,7 +59,7 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'list_stock_items',
-      description: 'List stock items from Tally.',
+      description: 'Returns a list of all stock items (inventory items) defined in TallyPrime, including their name, MasterID, and GUID. Use this to discover item names or IDs before fetching stock-specific reports or vouchers.',
       parameters: {
         type: 'object',
         properties: {},

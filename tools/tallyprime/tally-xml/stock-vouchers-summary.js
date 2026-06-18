@@ -1,13 +1,6 @@
-/**
- * Function to fetch Stock Vouchers Summary from Tally.
- *
- * @param {Object} args - Arguments for the request.
- * @param {string} args.stockItemName - The name of the stock item to filter the vouchers.
- * @returns {Promise<Object>} - The result of the Stock Vouchers Summary request.
- */
 const executeFunction = async ({ stockItemName }) => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
@@ -29,16 +22,10 @@ const executeFunction = async ({ stockItemName }) => {
 </ENVELOPE>`;
 
   try {
-    // Set up headers for the request
-    const headers = {
-      'Content-Type': 'application/xml'
-    };
-
-    // Perform the fetch request
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers,
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
     // Check if the response was successful
@@ -66,16 +53,16 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'fetch_stock_vouchers_summary',
-      description: 'Fetches Stock Vouchers Summary from Tally.',
+      description: 'Returns a summary of all stock vouchers (purchases, sales, journals, etc.) for a specific inventory item by exact name, in XML format. Shows the full movement history of a single stock item across all voucher types.',
       parameters: {
         type: 'object',
         properties: {
           stockItemName: {
             type: 'string',
-            description: 'The name of the stock item to filter the vouchers.'
-          }
+            description: 'Exact name of the stock item as it appears in TallyPrime.',
+          },
         },
-        required: ['stockItemName']
+        required: ['stockItemName'],
       }
     }
   }

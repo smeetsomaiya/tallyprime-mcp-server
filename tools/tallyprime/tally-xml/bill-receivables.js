@@ -1,15 +1,6 @@
-/**
- * Function to fetch Bills Receivable data from Tally.
- *
- * @param {Object} args - Arguments for the request.
- * @param {string} args.fromDate - The start date for the data export.
- * @param {string} args.toDate - The end date for the data export.
- * @param {string} args.company - The name of the company for which data is being fetched.
- * @returns {Promise<Object>} - The result of the data fetch from Tally.
- */
 const executeFunction = async ({ fromDate, toDate, company }) => {
-  const tallyURL = 'http://localhost'; // Base URL for Tally
-  const tallyPort = '9000'; // Port for Tally
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
     <HEADER>
@@ -32,7 +23,6 @@ const executeFunction = async ({ fromDate, toDate, company }) => {
 </ENVELOPE>`;
   
   try {
-    // Perform the fetch request
     const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
@@ -66,24 +56,24 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'fetch_bills_receivable',
-      description: 'Fetch Bills Receivable data from Tally.',
+      description: 'Returns the Bills Receivable report for a company and date range in XML format. Lists all outstanding customer invoices not yet received/settled, including bill reference, party name, amount, and due date. Use date format DD-MMM-YYYY (e.g. "01-Apr-2024").',
       parameters: {
         type: 'object',
         properties: {
           fromDate: {
             type: 'string',
-            description: 'The start date for the data export in format DD-MMM-YYYY.'
+            description: 'Period start date in DD-MMM-YYYY format (e.g. "01-Apr-2024").',
           },
           toDate: {
             type: 'string',
-            description: 'The end date for the data export in format DD-MMM-YYYY.'
+            description: 'Period end date in DD-MMM-YYYY format (e.g. "31-Mar-2025").',
           },
           company: {
             type: 'string',
-            description: 'The name of the company for which data is being fetched.'
-          }
+            description: 'Exact company name as it appears in TallyPrime.',
+          },
         },
-        required: ['fromDate', 'toDate', 'company']
+        required: ['fromDate', 'toDate', 'company'],
       }
     }
   }

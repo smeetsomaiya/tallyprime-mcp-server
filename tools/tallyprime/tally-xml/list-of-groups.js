@@ -1,42 +1,25 @@
-/**
- * Function to list groups from Tally.
- *
- * @param {Object} args - Arguments for the request.
- * @param {string} args.fromDate - The start date for the data retrieval in YYYYMMDD format.
- * @param {string} args.toDate - The end date for the data retrieval in YYYYMMDD format.
- * @param {string} args.company - The name of the company to retrieve data for.
- * @returns {Promise<Object>} - The response from the Tally API.
- */
-const executeFunction = async ({ fromDate, toDate, company }) => {
-  const tallyURL = 'http://localhost'; // Assuming localhost for Tally
-  const tallyPort = '9000'; // Default Tally port
+const executeFunction = async () => {
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
     <VERSION>1</VERSION>
     <TALLYREQUEST>Export</TALLYREQUEST>
     <TYPE>Collection</TYPE>
-    <ID>Collection of Ledgers</ID>
+    <ID>List of Groups</ID>
   </HEADER>
   <BODY>
     <DESC>
+      <STATICVARIABLES>
+        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+      </STATICVARIABLES>
       <TDL>
         <TDLMESSAGE>
-          <OBJECT NAME="LicenseInfo" ISMODIFY="No" ISFIXED="No" ISINITIALIZE="No" ISOPTION="No" ISINTERNAL="No">
-            <LOCALFORMULA>IsEducationalMode: $SV_LICENSE_TRIAL</LOCALFORMULA>
-            <LOCALFORMULA>IsSilver: $SV_LICENSE_SILVER</LOCALFORMULA>
-            <LOCALFORMULA>Folderpath:$SVCURRENTCOMPANY</LOCALFORMULA>
-            <LOCALFORMULA>LicenseName:
-              If $SV_LICENSE_TRIAL Then $$LocaleString:"Educational Version"  
-              ELSE
-              If $SV_LICENSE_SILVER Then $$LocaleString:"Silver" 
-              ELSE
-              If $SV_LICENSE_GOLD Then $$LocaleString:"Gold" 
-              else ""</LOCALFORMULA>
-          </OBJECT>
-          <COLLECTION NAME="Collection of Ledgers" ISMODIFY="No" ISFIXED="No" ISINITIALIZE="No" ISOPTION="No" ISINTERNAL="No">
-            <OBJECTS> LicenseInfo</OBJECTS>  
-            <NATIVEMETHOD>IsEducationalMode</NATIVEMETHOD>
+          <COLLECTION ISMODIFY="No" ISFIXED="No" ISINITIALIZE="Yes" ISOPTION="No" ISINTERNAL="No" NAME="List of Groups">
+            <TYPE>Group</TYPE>
+            <NATIVEMETHOD>Name</NATIVEMETHOD>
+            <NATIVEMETHOD>Parent</NATIVEMETHOD>
           </COLLECTION>
         </TDLMESSAGE>
       </TDL>
@@ -47,58 +30,36 @@ const executeFunction = async ({ fromDate, toDate, company }) => {
   try {
     const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml'
-      },
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
     console.error('Error fetching groups from Tally:', error);
     return { error: 'An error occurred while fetching groups from Tally.' };
   }
 };
 
-/**
- * Tool configuration for listing groups from Tally.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
       name: 'list_groups',
-      description: 'List groups from Tally.',
+      description: 'Returns all account groups defined in TallyPrime, including each group\'s name and parent group, in XML format. Groups are the categories that ledgers belong to (e.g. "Sundry Debtors", "Fixed Assets", "Sales Accounts"). Use this to understand the chart-of-accounts hierarchy.',
       parameters: {
         type: 'object',
-        properties: {
-          fromDate: {
-            type: 'string',
-            description: 'The start date for the data retrieval in YYYYMMDD format.'
-          },
-          toDate: {
-            type: 'string',
-            description: 'The end date for the data retrieval in YYYYMMDD format.'
-          },
-          company: {
-            type: 'string',
-            description: 'The name of the company to retrieve data for.'
-          }
-        },
-        required: ['fromDate', 'toDate', 'company']
-      }
-    }
-  }
+        properties: {},
+        required: [],
+      },
+    },
+  },
 };
 
 export { apiTool };

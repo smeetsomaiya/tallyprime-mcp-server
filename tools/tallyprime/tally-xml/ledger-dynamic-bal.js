@@ -1,15 +1,6 @@
-/**
- * Function to get ledger data from Tally.
- *
- * @param {Object} args - Arguments for the ledger request.
- * @param {string} args.fromDate - The starting date for the ledger data.
- * @param {string} args.toDate - The ending date for the ledger data.
- * @param {string} args.company - The name of the company for which to fetch ledger data.
- * @returns {Promise<Object>} - The result of the ledger request.
- */
-const executeFunction = async ({ fromDate, toDate, company }) => {
-  const tallyURL = 'http://localhost'; // Base URL for Tally
-  const tallyPort = '9000'; // Port for Tally
+const executeFunction = async ({ fromDate, toDate, ledgerName }) => {
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
@@ -33,7 +24,7 @@ const executeFunction = async ({ fromDate, toDate, company }) => {
             <NATIVEMETHOD>*</NATIVEMETHOD>
             <FILTERS>Ledgerfilter</FILTERS>
           </COLLECTION>
-          <SYSTEM TYPE="Formulae" NAME="Ledgerfilter">$Name="${company}"</SYSTEM>
+          <SYSTEM TYPE="Formulae" NAME="Ledgerfilter">$Name="${ledgerName}"</SYSTEM>
         </TDLMESSAGE>
       </TDL>
     </DESC>
@@ -43,58 +34,49 @@ const executeFunction = async ({ fromDate, toDate, company }) => {
   try {
     const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml'
-      },
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
-    console.error('Error fetching ledger data:', error);
-    return { error: 'An error occurred while fetching ledger data.' };
+    console.error('Error fetching ledger balance data:', error);
+    return { error: 'An error occurred while fetching ledger balance data.' };
   }
 };
 
-/**
- * Tool configuration for fetching ledger data from Tally.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
-      name: 'ledger_dynamic_bal',
-      description: 'Fetch ledger data based on ledger name.',
+      name: 'get_ledger_balance',
+      description: 'Returns the balance and details for a named ledger over a given date range from TallyPrime, in XML format. Unlike get_ledger (which returns static master data), this query scopes to a reporting period and is suitable for computing period-specific balances.',
       parameters: {
         type: 'object',
         properties: {
           fromDate: {
             type: 'string',
-            description: 'The starting date for the ledger data.'
+            description: 'Period start date in YYYYMMDD format (e.g. "20240401").',
           },
           toDate: {
             type: 'string',
-            description: 'The ending date for the ledger data.'
+            description: 'Period end date in YYYYMMDD format (e.g. "20250331").',
           },
-          company: {
+          ledgerName: {
             type: 'string',
-            description: 'The name of the company for which to fetch ledger data.'
-          }
+            description: 'Exact name of the ledger as it appears in TallyPrime (e.g. "Cash", "Sundry Debtors").',
+          },
         },
-        required: ['fromDate', 'toDate', 'company']
-      }
-    }
-  }
+        required: ['fromDate', 'toDate', 'ledgerName'],
+      },
+    },
+  },
 };
 
 export { apiTool };

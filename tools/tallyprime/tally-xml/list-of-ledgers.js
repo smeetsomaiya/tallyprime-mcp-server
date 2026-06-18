@@ -1,13 +1,6 @@
-/**
- * Function to list ledgers from Tally.
- *
- * @param {Object} args - Arguments for the ledger request.
- * @param {string} args.company - The name of the company to fetch ledgers for.
- * @returns {Promise<Object>} - The result of the ledger request.
- */
 const executeFunction = async ({ company }) => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlData = `<ENVELOPE>
     <HEADER>
       <VERSION>1</VERSION>
@@ -36,7 +29,7 @@ const executeFunction = async ({ company }) => {
   </ENVELOPE>`;
   
   try {
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -69,16 +62,16 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'list_ledgers',
-      description: 'Fetch a list of ledgers from Tally.',
+      description: 'Returns all ledgers defined for a company in TallyPrime, including address, MasterID, parent group, and all stored fields, in XML format. Use this to get the full list of ledger accounts for a company before fetching balances or vouchers.',
       parameters: {
         type: 'object',
         properties: {
           company: {
             type: 'string',
-            description: 'The name of the company to fetch ledgers for.'
-          }
+            description: 'Exact company name as it appears in TallyPrime (e.g. "ABC Enterprises").',
+          },
         },
-        required: ['company']
+        required: ['company'],
       }
     }
   }

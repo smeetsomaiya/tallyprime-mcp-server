@@ -1,56 +1,38 @@
-/**
- * Function to check whether Tally is running.
- *
- * @returns {Promise<Object>} - The result of the Tally status check.
- */
 const executeFunction = async () => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   try {
-    // Construct the URL for the Tally request
-    const url = `${TallyURL}:${TallyPort}`;
-
-    // Perform the fetch request
-    const response = await fetch(url, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml'
-      }
+      headers: { 'Content-Type': 'application/xml' },
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
     console.error('Error checking Tally status:', error);
-    return { error: 'An error occurred while checking Tally status.' };
+    return { error: 'Tally is not reachable. Ensure TallyPrime is running and the XML server is enabled on the configured port.' };
   }
 };
 
-/**
- * Tool configuration for checking Tally status.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
       name: 'check_tally_status',
-      description: 'Check whether Tally is running.',
+      description: 'Pings the TallyPrime XML server to verify it is running and reachable. Call this first before any other tool to confirm connectivity. Returns Tally version and server info on success, or a connection error if Tally is not running.',
       parameters: {
         type: 'object',
         properties: {},
-        required: []
-      }
-    }
-  }
+        required: [],
+      },
+    },
+  },
 };
 
 export { apiTool };

@@ -1,12 +1,6 @@
-/**
- * Function to get license information from Tally.
- *
- * @param {Object} args - Arguments for the license information request.
- * @returns {Promise<Object>} - The result of the license information request.
- */
 const executeFunction = async () => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
     <HEADER>
@@ -47,16 +41,10 @@ const executeFunction = async () => {
 </ENVELOPE>`;
   
   try {
-    // Set up headers for the request
-    const headers = {
-      'Content-Type': 'application/xml'
-    };
-
-    // Perform the fetch request
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers,
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
     // Check if the response was successful
@@ -84,7 +72,7 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'get_license_info',
-      description: 'Get license information from Tally.',
+      description: 'Returns TallyPrime license details including plan type (Silver/Gold/Educational), serial number, account ID, admin email, application path, and data path. Useful for confirming installation details or diagnosing configuration issues.',
       parameters: {
         type: 'object',
         properties: {},

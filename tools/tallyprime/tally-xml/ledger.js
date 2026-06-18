@@ -1,13 +1,6 @@
-/**
- * Function to get ledger information from Tally.
- *
- * @param {Object} args - Arguments for the ledger request.
- * @param {string} args.ledgerName - The name of the ledger to search for.
- * @returns {Promise<Object>} - The result of the ledger request.
- */
 const executeFunction = async ({ ledgerName }) => {
-  const TallyURL = 'http://localhost'; // Base URL for Tally
-  const TallyPort = '9000'; // Port for Tally
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `<ENVELOPE>
     <HEADER>
       <VERSION>1</VERSION>
@@ -35,7 +28,7 @@ const executeFunction = async ({ ledgerName }) => {
   </ENVELOPE>`;
   
   try {
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -68,16 +61,16 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'get_ledger',
-      description: 'Get ledger information from Tally based on ledger name.',
+      description: 'Returns the master record for a single named ledger from TallyPrime, including address, parent group, opening balance, and all stored fields. Performs an exact name match — the ledger name must match exactly as it appears in Tally.',
       parameters: {
         type: 'object',
         properties: {
           ledgerName: {
             type: 'string',
-            description: 'The name of the ledger to search for.'
-          }
+            description: 'Exact name of the ledger as it appears in TallyPrime (e.g. "Cash", "State Bank of India").',
+          },
         },
-        required: ['ledgerName']
+        required: ['ledgerName'],
       }
     }
   }

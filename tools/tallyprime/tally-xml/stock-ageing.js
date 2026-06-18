@@ -1,15 +1,6 @@
-/**
- * Function to fetch stock ageing data from Tally.
- *
- * @param {Object} args - Arguments for the stock ageing request.
- * @param {string} args.stockGroupName - The name of the stock group to filter by.
- * @param {string} args.stockAgeFrom - The start date for stock ageing.
- * @param {string} args.stockAgeTo - The end date for stock ageing.
- * @returns {Promise<Object>} - The result of the stock ageing request.
- */
 const executeFunction = async ({ stockGroupName, stockAgeFrom, stockAgeTo }) => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
@@ -31,7 +22,7 @@ const executeFunction = async ({ stockGroupName, stockAgeFrom, stockAgeTo }) => 
 </ENVELOPE>`;
 
   try {
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -64,24 +55,24 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'fetch_stock_ageing',
-      description: 'Fetch stock ageing data from Tally.',
+      description: 'Returns the Stock Ageing Analysis from TallyPrime for a given stock group and date range, in XML format. Shows how long inventory batches have been held, useful for identifying slow-moving or expired stock. The stock group name must match exactly as defined in Tally.',
       parameters: {
         type: 'object',
         properties: {
           stockGroupName: {
             type: 'string',
-            description: 'The name of the stock group to filter by.'
+            description: 'Exact name of the stock group to analyse (e.g. "Primary", "Finished Goods").',
           },
           stockAgeFrom: {
             type: 'string',
-            description: 'The start date for stock ageing.'
+            description: 'Ageing period start date in YYYYMMDD format.',
           },
           stockAgeTo: {
             type: 'string',
-            description: 'The end date for stock ageing.'
-          }
+            description: 'Ageing period end date in YYYYMMDD format.',
+          },
         },
-        required: ['stockGroupName', 'stockAgeFrom', 'stockAgeTo']
+        required: ['stockGroupName', 'stockAgeFrom', 'stockAgeTo'],
       }
     }
   }

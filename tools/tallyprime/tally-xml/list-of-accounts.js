@@ -1,14 +1,6 @@
-/**
- * Function to fetch the list of accounts from Tally.
- *
- * @param {Object} args - Arguments for the request.
- * @param {string} args.fromDate - The start date for the data export in 'yymmdd' format.
- * @param {string} args.toDate - The end date for the data export in 'yymmdd' format.
- * @returns {Promise<Object>} - The response from the Tally API.
- */
 const executeFunction = async ({ fromDate, toDate }) => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
     <HEADER>
@@ -29,11 +21,7 @@ const executeFunction = async ({ fromDate, toDate }) => {
 </ENVELOPE>`;
 
   try {
-    // Set up the URL for the request
-    const url = `${TallyURL}:${TallyPort}`;
-
-    // Perform the fetch request
-    const response = await fetch(url, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -66,20 +54,20 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'list_accounts',
-      description: 'Fetch the list of accounts from Tally.',
+      description: 'Returns the full chart of accounts (List of Accounts) from TallyPrime as XML, showing all groups and ledgers in their hierarchy. The date range sets the reporting period context but does not filter the list itself. Use YYYYMMDD format for dates (e.g. 20240401).',
       parameters: {
         type: 'object',
         properties: {
           fromDate: {
             type: 'string',
-            description: 'The start date for the data export in yymmdd format.'
+            description: 'Period start date in YYYYMMDD format (e.g. 20240401).',
           },
           toDate: {
             type: 'string',
-            description: 'The end date for the data export in yymmdd format.'
-          }
+            description: 'Period end date in YYYYMMDD format (e.g. 20250331).',
+          },
         },
-        required: ['fromDate', 'toDate']
+        required: ['fromDate', 'toDate'],
       }
     }
   }

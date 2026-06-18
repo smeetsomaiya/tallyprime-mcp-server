@@ -1,15 +1,6 @@
-/**
- * Function to send XML requests to Tally for exporting vouchers by type.
- *
- * @param {Object} args - Arguments for the request.
- * @param {string} args.fromDate - The start date for the voucher export.
- * @param {string} args.toDate - The end date for the voucher export.
- * @param {string} args.company - The name of the company for the export.
- * @returns {Promise<Object>} - The result of the voucher export request.
- */
-const executeFunction = async ({ fromDate, toDate, company }) => {
-  const TallyURL = 'http://localhost'; // Base URL for Tally
-  const TallyPort = '9000'; // Port for Tally
+const executeFunction = async ({ fromDate, toDate, company, voucherType }) => {
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
     <HEADER>
@@ -61,7 +52,7 @@ const executeFunction = async ({ fromDate, toDate, company }) => {
                         <TYPE>Voucher</TYPE>
                         <FILTERS>VoucherType</FILTERS>
                     </COLLECTION>
-                    <SYSTEM TYPE="Formulae" NAME="VoucherType">$VoucherTypeName = "Attendance"</SYSTEM>
+                    <SYSTEM TYPE="Formulae" NAME="VoucherType">$VoucherTypeName = "${voucherType}"</SYSTEM>
                 </TDLMESSAGE>
             </TDL>
         </DESC>
@@ -69,61 +60,55 @@ const executeFunction = async ({ fromDate, toDate, company }) => {
 </ENVELOPE>`;
 
   try {
-    // Perform the fetch request
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml'
-      },
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
-    console.error('Error exporting vouchers:', error);
-    return { error: 'An error occurred while exporting vouchers.' };
+    console.error('Error fetching vouchers by type:', error);
+    return { error: 'An error occurred while fetching vouchers by type.' };
   }
 };
 
-/**
- * Tool configuration for exporting vouchers by type from Tally.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
-      name: 'vouchersbytype',
-      description: 'Export vouchers by type from Tally.',
+      name: 'fetch_vouchers_by_type',
+      description: 'Returns all vouchers of a specific type for a company and date range, in XML format. Each row includes MasterID, voucher number, and date. Common voucher types: "Sales", "Purchase", "Payment", "Receipt", "Journal", "Contra", "Attendance". The voucherType must match exactly as defined in TallyPrime.',
       parameters: {
         type: 'object',
         properties: {
           fromDate: {
             type: 'string',
-            description: 'The start date for the voucher export in YYYYMMDD format.'
+            description: 'Period start date in YYYYMMDD format (e.g. "20240401").',
           },
           toDate: {
             type: 'string',
-            description: 'The end date for the voucher export in YYYYMMDD format.'
+            description: 'Period end date in YYYYMMDD format (e.g. "20250331").',
           },
           company: {
             type: 'string',
-            description: 'The name of the company for the export.'
-          }
+            description: 'Exact company name as it appears in TallyPrime.',
+          },
+          voucherType: {
+            type: 'string',
+            description: 'Voucher type name exactly as defined in TallyPrime (e.g. "Sales", "Purchase", "Payment", "Receipt", "Attendance").',
+          },
         },
-        required: ['fromDate', 'toDate', 'company']
-      }
-    }
-  }
+        required: ['fromDate', 'toDate', 'company', 'voucherType'],
+      },
+    },
+  },
 };
 
 export { apiTool };

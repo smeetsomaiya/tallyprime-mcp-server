@@ -1,15 +1,6 @@
-/**
- * Function to get a voucher from Tally based on voucher number and date.
- *
- * @param {Object} args - Arguments for the voucher request.
- * @param {string} args.voucherNumber - The voucher number to search for.
- * @param {string} args.date - The date of the voucher in 'DD-MMM-YYYY' format.
- * @param {string} [args.company="ABC Company"] - The company name for the request.
- * @returns {Promise<Object>} - The result of the voucher request.
- */
-const executeFunction = async ({ voucherNumber, date, company = 'ABC Company' }) => {
-  const TallyPort = '9000';
-  const TallyURL = 'http://localhost';
+const executeFunction = async ({ voucherNumber, date, company }) => {
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `<ENVELOPE>
     <HEADER>
       <VERSION>1</VERSION>
@@ -33,7 +24,7 @@ const executeFunction = async ({ voucherNumber, date, company = 'ABC Company' })
   </ENVELOPE>`;
 
   try {
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -66,24 +57,24 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'get_voucher_by_number',
-      description: 'Get a voucher from Tally based on voucher number and date.',
+      description: 'Fetches a single voucher from TallyPrime by its voucher number and date, returning all fields in XML. Use this when you have the voucher number (e.g. "Sal/001") from a report output. Date must be in DD-MMM-YYYY format (e.g. "01-Apr-2024").',
       parameters: {
         type: 'object',
         properties: {
           voucherNumber: {
             type: 'string',
-            description: 'The voucher number to search for.'
+            description: 'Voucher number as it appears in TallyPrime (e.g. "Sal/001", "PUR/0042").',
           },
           date: {
             type: 'string',
-            description: 'The date of the voucher in DD-MMM-YYYY format.'
+            description: 'Voucher date in DD-MMM-YYYY format (e.g. "01-Apr-2024").',
           },
           company: {
             type: 'string',
-            description: 'The company name for the request.'
-          }
+            description: 'Exact company name as it appears in TallyPrime.',
+          },
         },
-        required: ['voucherNumber', 'date']
+        required: ['voucherNumber', 'date', 'company'],
       }
     }
   }

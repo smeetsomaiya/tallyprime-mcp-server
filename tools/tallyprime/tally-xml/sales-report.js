@@ -1,15 +1,6 @@
-/**
- * Function to fetch sales report from Tally.
- *
- * @param {Object} args - Arguments for the sales report request.
- * @param {string} [args.fromDate] - The start date for the report in YYYYMMDD format.
- * @param {string} [args.toDate] - The end date for the report in YYYYMMDD format.
- * @param {string} [args.company] - The name of the company for which the report is generated.
- * @returns {Promise<Object>} - The result of the sales report request.
- */
 const executeFunction = async ({ fromDate, toDate, company }) => {
-  const TallyPort = '9000';
-  const TallyURL = 'http://localhost';
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlData = `
 <ENVELOPE>
   <HEADER>
@@ -32,7 +23,7 @@ const executeFunction = async ({ fromDate, toDate, company }) => {
 </ENVELOPE>`;
   
   try {
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -65,23 +56,24 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'fetch_sales_report',
-      description: 'Fetches all Sales Vouchers for Current Period from Tally.',
+      description: 'Returns all Sales vouchers from TallyPrime\'s Voucher Register for a given company and date range, in XML format. Equivalent to Gateway of Tally → Display → Account Books → Sales Register. Each voucher includes buyer details, line items, amounts, and tax entries.',
       parameters: {
         type: 'object',
         properties: {
           fromDate: {
             type: 'string',
-            description: 'The start date for the report in YYYYMMDD format.'
+            description: 'Period start date in YYYYMMDD format (e.g. "20240401").',
           },
           toDate: {
             type: 'string',
-            description: 'The end date for the report in YYYYMMDD format.'
+            description: 'Period end date in YYYYMMDD format (e.g. "20250331").',
           },
           company: {
             type: 'string',
-            description: 'The name of the company for which the report is generated.'
-          }
-        }
+            description: 'Exact company name as it appears in TallyPrime.',
+          },
+        },
+        required: ['fromDate', 'toDate', 'company'],
       }
     }
   }

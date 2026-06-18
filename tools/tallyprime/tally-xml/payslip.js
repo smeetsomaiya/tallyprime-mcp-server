@@ -1,15 +1,6 @@
-/**
- * Function to fetch payslip data from Tally.
- *
- * @param {Object} args - Arguments for the payslip request.
- * @param {string} args.employeeName - The name of the employee for whom the payslip is requested.
- * @param {string} [args.fromDate] - The start date for the payslip data in YYYYMMDD format.
- * @param {string} [args.toDate] - The end date for the payslip data in YYYYMMDD format.
- * @returns {Promise<Object>} - The result of the payslip request.
- */
 const executeFunction = async ({ employeeName, fromDate, toDate }) => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
@@ -31,7 +22,7 @@ const executeFunction = async ({ employeeName, fromDate, toDate }) => {
 </ENVELOPE>`;
 
   try {
-    const response = await fetch(`${TallyURL}:${TallyPort}`, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -64,24 +55,24 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'fetch_payslip',
-      description: 'Fetch payslip data for a specific employee from Tally.',
+      description: 'Exports a payslip PDF for a named employee from TallyPrime\'s HR/Payroll module for a given pay period. The employee name must match the Cost Centre name exactly as configured in Tally. Returns the raw PDF export response from Tally.',
       parameters: {
         type: 'object',
         properties: {
           employeeName: {
             type: 'string',
-            description: 'The name of the employee for whom the payslip is requested.'
+            description: 'Exact Cost Centre name for the employee as defined in TallyPrime (e.g. "John Smith").',
           },
           fromDate: {
             type: 'string',
-            description: 'The start date for the payslip data in YYYYMMDD format.'
+            description: 'Pay period start date in YYYYMMDD format (e.g. "20240401").',
           },
           toDate: {
             type: 'string',
-            description: 'The end date for the payslip data in YYYYMMDD format.'
-          }
+            description: 'Pay period end date in YYYYMMDD format (e.g. "20240430").',
+          },
         },
-        required: ['employeeName']
+        required: ['employeeName'],
       }
     }
   }

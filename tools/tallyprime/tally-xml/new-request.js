@@ -1,15 +1,6 @@
-/**
- * Function to send XML requests to Tally.
- *
- * @param {Object} args - Arguments for the Tally request.
- * @param {string} args.companyName - The name of the company to create in Tally.
- * @param {string} args.startingFrom - The starting date for the company.
- * @param {string} args.booksFrom - The date from which books are maintained.
- * @returns {Promise<Object>} - The response from the Tally server.
- */
 const executeFunction = async ({ companyName, startingFrom, booksFrom }) => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
@@ -36,63 +27,51 @@ const executeFunction = async ({ companyName, startingFrom, booksFrom }) => {
 </ENVELOPE>`;
 
   try {
-    const url = `${TallyURL}:${TallyPort}`;
-    
-    // Perform the fetch request
-    const response = await fetch(url, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml'
-      },
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
-    console.error('Error sending request to Tally:', error);
-    return { error: 'An error occurred while sending the request to Tally.' };
+    console.error('Error creating company in Tally:', error);
+    return { error: 'An error occurred while creating the company in Tally.' };
   }
 };
 
-/**
- * Tool configuration for sending XML requests to Tally.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
-      name: 'send_tally_request',
-      description: 'Send XML requests to Tally for creating a company.',
+      name: 'create_company',
+      description: 'Creates a new company in TallyPrime by importing a company master record. This is a write operation — use with caution. Requires the company name, financial year start date, and books-from date. Returns Tally\'s acknowledgement XML on success.',
       parameters: {
         type: 'object',
         properties: {
           companyName: {
             type: 'string',
-            description: 'The name of the company to create in Tally.'
+            description: 'Name for the new company (e.g. "Acme Pvt Ltd").',
           },
           startingFrom: {
             type: 'string',
-            description: 'The starting date for the company.'
+            description: 'Financial year start date in YYYYMMDD format (e.g. "20240401").',
           },
           booksFrom: {
             type: 'string',
-            description: 'The date from which books are maintained.'
-          }
+            description: 'Date from which books of accounts are maintained, in YYYYMMDD format.',
+          },
         },
-        required: ['companyName', 'startingFrom', 'booksFrom']
-      }
-    }
-  }
+        required: ['companyName', 'startingFrom', 'booksFrom'],
+      },
+    },
+  },
 };
 
 export { apiTool };

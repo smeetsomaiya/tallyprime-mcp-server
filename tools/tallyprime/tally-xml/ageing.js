@@ -1,16 +1,6 @@
-/**
- * Function to send a request to Tally for exporting data.
- *
- * @param {Object} args - Arguments for the Tally request.
- * @param {string} args.reportName - The name of the report to export.
- * @param {string} args.fromDate - The start date for the export.
- * @param {string} args.toDate - The end date for the export.
- * @param {string} args.costCentreName - The name of the cost centre (employee) to filter by.
- * @returns {Promise<Object>} - The response from the Tally server.
- */
 const executeFunction = async ({ reportName, fromDate, toDate, costCentreName }) => {
-  const tallyURL = 'http://localhost'; // will be provided by the user
-  const tallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `
 <ENVELOPE>
   <HEADER>
@@ -34,62 +24,53 @@ const executeFunction = async ({ reportName, fromDate, toDate, costCentreName })
   try {
     const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml'
-      },
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
-    console.error('Error sending request to Tally:', error);
-    return { error: 'An error occurred while sending the request to Tally.' };
+    console.error('Error exporting Tally report:', error);
+    return { error: 'An error occurred while exporting the Tally report.' };
   }
 };
 
-/**
- * Tool configuration for sending requests to Tally.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
-      name: 'send_tally_request',
-      description: 'Send a request to Tally for exporting data.',
+      name: 'export_tally_report_pdf',
+      description: 'Exports any named TallyPrime report as PDF for a given date range, optionally filtered by cost centre (employee). The reportName must be a valid TallyPrime report identifier (e.g. "Ageing Analysis", "SelectiveEmployeePaySlip"). Returns the raw PDF export response from Tally.',
       parameters: {
         type: 'object',
         properties: {
           reportName: {
             type: 'string',
-            description: 'The name of the report to export.'
+            description: 'TallyPrime report name to export (e.g. "Ageing Analysis", "SelectiveEmployeePaySlip").',
           },
           fromDate: {
             type: 'string',
-            description: 'The start date for the export.'
+            description: 'Period start date in YYYYMMDD format.',
           },
           toDate: {
             type: 'string',
-            description: 'The end date for the export.'
+            description: 'Period end date in YYYYMMDD format.',
           },
           costCentreName: {
             type: 'string',
-            description: 'The name of the cost centre (employee) to filter by.'
-          }
+            description: 'Cost centre name to filter by (e.g. employee name for payslips, or leave blank for company-wide reports).',
+          },
         },
-        required: ['reportName', 'fromDate', 'toDate', 'costCentreName']
-      }
-    }
-  }
+        required: ['reportName', 'fromDate', 'toDate', 'costCentreName'],
+      },
+    },
+  },
 };
 
 export { apiTool };

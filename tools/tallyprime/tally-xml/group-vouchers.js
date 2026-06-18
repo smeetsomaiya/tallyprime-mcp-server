@@ -1,15 +1,6 @@
-/**
- * Function to fetch group vouchers from Tally.
- *
- * @param {Object} args - Arguments for the request.
- * @param {string} args.Fromdate - The start date for the voucher export.
- * @param {string} args.ToDate - The end date for the voucher export.
- * @param {string} args.TallyURL - The base URL for the Tally server.
- * @param {number} args.TallyPort - The port number for the Tally server.
- * @returns {Promise<Object>} - The response from the Tally server.
- */
-const executeFunction = async ({ Fromdate, ToDate, TallyURL, TallyPort }) => {
-  const url = `${TallyURL}:${TallyPort}`;
+const executeFunction = async ({ fromDate, toDate }) => {
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const xmlRequest = `<ENVELOPE>
     <HEADER>
       <VERSION>1</VERSION>
@@ -22,8 +13,8 @@ const executeFunction = async ({ Fromdate, ToDate, TallyURL, TallyPort }) => {
         <STATICVARIABLES>
           <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
           <SVViewName>Accounting Voucher View</SVViewName>
-          <SVFROMDATE>${Fromdate}</SVFROMDATE>
-          <SVTODATE TYPE="Date">${ToDate}</SVTODATE>
+          <SVFROMDATE>${fromDate}</SVFROMDATE>
+          <SVTODATE TYPE="Date">${toDate}</SVTODATE>
         </STATICVARIABLES>
         <TDL>
           <TDLMESSAGE>
@@ -39,64 +30,47 @@ const executeFunction = async ({ Fromdate, ToDate, TallyURL, TallyPort }) => {
   </ENVELOPE>`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml'
-      },
-      body: xmlRequest
+      headers: { 'Content-Type': 'application/xml' },
+      body: xmlRequest,
     });
 
-    // Check if the response was successful
     if (!response.ok) {
       const errorData = await response.text();
       throw new Error(errorData);
     }
 
-    // Parse and return the response data
-    const data = await response.text();
-    return data;
+    return await response.text();
   } catch (error) {
-    console.error('Error fetching group vouchers:', error);
-    return { error: 'An error occurred while fetching group vouchers.' };
+    console.error('Error fetching Sales Accounts group vouchers:', error);
+    return { error: 'An error occurred while fetching Sales Accounts group vouchers.' };
   }
 };
 
-/**
- * Tool configuration for fetching group vouchers from Tally.
- * @type {Object}
- */
 const apiTool = {
   function: executeFunction,
   definition: {
     type: 'function',
     function: {
       name: 'fetch_group_vouchers',
-      description: 'Fetch all Sales Vouchers for the current period from Tally.',
+      description: 'Returns all vouchers under the "Sales Accounts" account group for a given date range, in XML format. Fetches the full accounting voucher view for every transaction booked under any ledger that belongs to the Sales Accounts group.',
       parameters: {
         type: 'object',
         properties: {
-          Fromdate: {
+          fromDate: {
             type: 'string',
-            description: 'The start date for the voucher export.'
+            description: 'Period start date in YYYYMMDD format (e.g. "20240401").',
           },
-          ToDate: {
+          toDate: {
             type: 'string',
-            description: 'The end date for the voucher export.'
+            description: 'Period end date in YYYYMMDD format (e.g. "20250331").',
           },
-          TallyURL: {
-            type: 'string',
-            description: 'The base URL for the Tally server.'
-          },
-          TallyPort: {
-            type: 'number',
-            description: 'The port number for the Tally server.'
-          }
         },
-        required: ['Fromdate', 'ToDate', 'TallyURL', 'TallyPort']
-      }
-    }
-  }
+        required: ['fromDate', 'toDate'],
+      },
+    },
+  },
 };
 
 export { apiTool };

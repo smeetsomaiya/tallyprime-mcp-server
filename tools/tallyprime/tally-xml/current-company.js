@@ -1,12 +1,6 @@
-/**
- * Function to check the current company in Tally.
- *
- * @param {Object} args - Arguments for the request.
- * @returns {Promise<Object>} - The response from the Tally server.
- */
 const executeFunction = async () => {
-  const TallyURL = 'http://localhost'; // will be provided by the user
-  const TallyPort = '9000'; // will be provided by the user
+  const tallyURL = process.env.TALLY_URL || 'http://localhost';
+  const tallyPort = process.env.TALLY_PORT || '9000';
   const requestBody = `
 <ENVELOPE>
     <HEADER>
@@ -33,10 +27,7 @@ const executeFunction = async () => {
 </ENVELOPE>`;
   
   try {
-    const url = `${TallyURL}:${TallyPort}`;
-    
-    // Perform the fetch request
-    const response = await fetch(url, {
+    const response = await fetch(`${tallyURL}:${tallyPort}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -69,7 +60,7 @@ const apiTool = {
     type: 'function',
     function: {
       name: 'check_current_company',
-      description: 'Check the current company in Tally.',
+      description: 'Returns the name of the company currently active in TallyPrime. Call this when you are unsure which company is loaded, or to confirm context before running company-specific queries.',
       parameters: {
         type: 'object',
         properties: {},
