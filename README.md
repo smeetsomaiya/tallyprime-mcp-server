@@ -1,181 +1,334 @@
-# Postman Agent Generator
+# TallyPrime MCP Server
 
-Welcome to your generated agent! 🚀
+> Connect Claude (and any MCP-compatible AI) directly to a live TallyPrime instance. Query ledgers, pull vouchers, run reports, and interrogate your books in plain English — no exports, no copy-paste.
 
-This project was created with the [Postman Agent Generator](https://postman.com/explore/agent-generator), configured to [Model Context Provider (MCP)](https://modelcontextprotocol.io/introduction) Server output mode. It provides you with:
+Built by [Smeet Somaiya](https://github.com/smeetsomaiya) · MIT License · Contributions welcome
 
-- ✅ An MCP-compatible server (`mcpServer.js`)
-- ✅ Automatically generated JavaScript tools for each selected Postman API request
+---
 
-Let's set things up!
+## What This Is
 
-## 🚦 Getting Started
+[TallyPrime](https://tallysolutions.com/) is the dominant accounting software in India. It exposes a local XML/HTTP API that lets external programs query live company data. This project wraps that API as an [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server, making every piece of your Tally data accessible to Claude and other AI clients.
 
-### ⚙️ Prerequisites
+Once connected, you can ask things like:
 
-Before starting, please ensure you have:
+- *"What is the closing balance of my Sundry Debtors ledger for FY 2024-25?"*
+- *"Show me all sales vouchers for April where the amount exceeds ₹1 lakh."*
+- *"List all stock items and their MasterIDs."*
+- *"Fetch the payslip for Rahul Sharma for March 2025."*
+- *"Which companies are currently loaded in Tally?"*
 
-- [Node.js (v16+ required, v20+ recommended)](https://nodejs.org/)
-- [npm](https://www.npmjs.com/) (included with Node)
+The AI figures out which tool to call, with which parameters, and interprets the XML response for you.
 
-### 📥 Installation & Setup
+---
 
-**1. Install dependencies**
+## Prerequisites
 
-Run from your project's root directory:
+### 1. TallyPrime with XML Server enabled
+
+The server communicates with Tally over HTTP on a local port (default: `9000`). You must enable this in TallyPrime:
+
+1. Open TallyPrime → press **F12** (Configure)
+2. Navigate to **Advanced Configuration**
+3. Under **TDL & Add-on** (or **Connectivity**), enable **"Enable ODBC Server"** or **"Enable TDL Server"** depending on your version
+4. Set the port to `9000` (or any port you prefer — update `.env` to match)
+5. Save and restart Tally
+
+> **Verify it works:** Open a browser and go to `http://localhost:9000`. You should see a Tally response page or XML output — not a "connection refused" error.
+
+### 2. Node.js v18+
+
+Download from [nodejs.org](https://nodejs.org/). Verify with:
 
 ```sh
+node --version   # should print v18.x or higher
+```
+
+---
+
+## Quick Start
+
+```sh
+# 1. Clone the repo
+git clone https://github.com/smeetsomaiya/tallyprime-mcp-server.git
+cd tallyprime-mcp-server
+
+# 2. Install dependencies
 npm install
+
+# 3. Configure Tally connection
+#    Edit .env to match your Tally setup (defaults work for a standard local install)
+#    TALLY_URL=http://localhost
+#    TALLY_PORT=9000
+
+# 4. Verify Tally is reachable and tools load
+npm run list-tools
+
+# 5. Connect to Claude Desktop (see below)
 ```
 
-### 🔐 Set tool environment variables
+---
 
-In the `.env` file, you'll see environment variable placeholders, one for each workspace that the selected tools are from. For example, if you selected requests from 2 workspaces, e.g. Acme and Widgets, you'll see two placeholders:
+## Configuration
 
-```
-ACME_API_KEY=
-WIDGETS_API_KEY=
-```
+The `.env` file at the project root controls how the server connects to Tally:
 
-Update the values with actual API keys for each API. These environment variables are used inside of the generated tools to set the API key for each request. You can inspect a file in the `tools` directory to see how it works.
-
-```javascript
-// environment variables are used inside of each tool file
-const apiKey = process.env.ACME_API_KEY;
+```env
+# TallyPrime XML Server connection
+TALLY_URL=http://localhost   # change to IP/hostname if Tally runs on a different machine
+TALLY_PORT=9000              # change if you configured a non-default port in Tally
 ```
 
-**Caveat:** This may not be correct for every API. The generation logic is relatively simple - for each workspace, we create an environment variable with the same name as the workspace slug, and then use that environment variable in each tool file that belongs to that workspace. If this isn't the right behavior for your chosen API, no problem! You can manually update anything in the `.env` file or tool files to accurately reflect the API's method of authentication.
+**Tally on the same machine?** The defaults work as-is.
 
-### 🛠️ List Available Tools
+**Tally on a different machine on your LAN?** Set `TALLY_URL=http://192.168.x.x` (the IP of the machine running Tally).
 
-List descriptions and parameters from all generated tools with:
+**Tally behind a corporate proxy or VPN?** Use the reachable hostname or IP. Tally's XML server must be network-accessible from wherever you run this MCP server.
 
-```sh
-node index.js tools
-```
+---
 
-Example:
+## Connecting to Claude
 
-```
-Available Tools:
+### Option A — Claude Desktop (Recommended for local use)
 
-Workspace: acme-workspace
-  Collection: useful-api
-    list_all_customers
-      Description: Retrieve a list of useful things.
-      Parameters:
-        - magic: The required magic power
-        - limit: Number of results returned
-        [...additional parameters...]
-```
+This runs the server in **stdio mode** — Claude Desktop launches it as a subprocess. No network port needed.
 
-## 🌐 Running the MCP Server
-
-The MCP Server (`mcpServer.js`) exposes your automated API tools to MCP-compatible clients, such as Claude Desktop or the Postman Desktop Application.
-
-### A) 🖥️ Run with Postman
-
-The Postman Desktop Application is the easiest way to run and test MCP servers.
-
-Step 1: Download the latest Postman Desktop Application from [https://www.postman.com/downloads/](https://www.postman.com/downloads/).
-
-Step 2: Read out the documentation article [here](https://learning.postman.com/docs/postman-ai-agent-builder/mcp-requests/overview/) for the next steps.
-
-### B) 👩‍💻 Run with Claude Desktop
-
-To integrate with Claude Desktop:
-
-1. Find node path:
-
+**Step 1:** Find your Node path:
 ```sh
 which node
+# e.g. /opt/homebrew/bin/node
 ```
 
-2. Find `mcpServer.js` path:
-
+**Step 2:** Find the absolute path to `mcpServer.js`:
 ```sh
 realpath mcpServer.js
+# e.g. /Users/you/tallyprime-mcp-server/mcpServer.js
 ```
 
-3. Open Claude Desktop → **Settings** → **Developers** → **Edit Config** and add your server:
+**Step 3:** Open Claude Desktop → **Settings → Developers → Edit Config** and add:
 
 ```json
 {
   "mcpServers": {
-    "<server_name>": {
-      "command": "<absolute_path_to_node>",
-      "args": ["<absolute_path_to_mcpServer.js>"]
+    "tallyprime": {
+      "command": "/opt/homebrew/bin/node",
+      "args": ["/Users/you/tallyprime-mcp-server/mcpServer.js"]
     }
   }
 }
 ```
 
-Restart Claude Desktop to activate this change.
+**Step 4:** Restart Claude Desktop. You should see the TallyPrime tools available in the tools panel.
 
-### Additional Options
+---
 
-#### 🐳 Docker Deployment (Production)
+### Option B — HTTP Server (for remote / multi-user access)
 
-For production deployments, you can use Docker:
-
-**1. Build Docker image**
+Run the server in SSE mode to expose it over HTTP. Useful for Heroku, Docker, or any remote deployment.
 
 ```sh
-docker build -t <your_server_name> .
+npm start
+# or: node mcpServer.js --sse
 ```
 
-**2. Claude Desktop Integration**
+The server starts on `PORT` (default `3001`, overridden by the `PORT` environment variable).
 
-Add Docker server configuration to Claude Desktop (Settings → Developers → Edit Config):
-
+**Claude Desktop with HTTP server:**
 ```json
 {
   "mcpServers": {
-    "<your_server_name>": {
+    "tallyprime": {
+      "url": "http://localhost:3001/sse"
+    }
+  }
+}
+```
+
+---
+
+### Option C — Docker
+
+```sh
+# Build
+docker build -t tallyprime-mcp-server .
+
+# Run (stdio mode, for Claude Desktop)
+docker run -i --rm --env-file=.env tallyprime-mcp-server
+
+# Claude Desktop config using Docker:
+```
+```json
+{
+  "mcpServers": {
+    "tallyprime": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "--env-file=.env", "<your_server_name>"]
+      "args": ["run", "-i", "--rm", "--env-file=/absolute/path/to/.env", "tallyprime-mcp-server"]
     }
   }
 }
 ```
 
-> Add your environment variables (API keys, etc.) inside the `.env` file.
+---
 
-#### 🌐 Server-Sent Events (SSE)
+## Tool Reference
 
-To run the server with Server-Sent Events (SSE) support, use the `--sse` flag:
+24 tools across 7 categories. All tools return raw XML from TallyPrime — the AI parses and interprets this for you.
 
-```sh
-node mcpServer.js --sse
+### System
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `check_tally_status` | Pings Tally to confirm it is running. Call this first to verify connectivity before using any other tool. | — |
+| `get_license_info` | Returns license details: plan type (Silver/Gold/Educational), serial number, account ID, admin email, data path. | — |
+
+---
+
+### Company & Context
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `check_current_company` | Returns the name of the company currently active in Tally. | — |
+| `list_companies` | Lists all companies available in TallyPrime. Use this to discover valid company names before any company-specific query. | — |
+| `create_company` | **Write operation.** Creates a new company in TallyPrime. | `companyName`, `startingFrom` (YYYYMMDD), `booksFrom` (YYYYMMDD) |
+
+---
+
+### Master Data
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_groups` | Returns all account groups (e.g. "Sundry Debtors", "Fixed Assets") with their parent group. Use to understand the chart-of-accounts hierarchy. | — |
+| `list_accounts` | Returns the full chart of accounts — all groups and ledgers in hierarchy. Date range sets reporting period context but does not filter results. | `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD) |
+| `list_ledgers` | Returns all ledgers for a company including MasterID, parent group, and address. | `company` |
+| `get_ledger` | Returns the master record for a single named ledger. Exact name match required. | `ledgerName` |
+| `list_stock_items` | Returns all stock items with name, MasterID, and GUID. | — |
+
+---
+
+### Ledger Queries
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_ledger_balance` | Returns balance and details for a named ledger over a date range. Scopes to a reporting period — use this for period-specific balances rather than static master data. | `ledgerName`, `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD) |
+| `fetch_bills_receivable` | Returns the Bills Receivable report — all outstanding customer invoices including bill reference, party, amount, and due date. | `company`, `fromDate` (DD-MMM-YYYY), `toDate` (DD-MMM-YYYY) |
+
+---
+
+### Vouchers — Collections
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `fetch_sales_report` | Returns all Sales vouchers from the Voucher Register (equivalent to Sales Register in Tally). Includes buyer, line items, amounts, and tax entries. | `company`, `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD) |
+| `fetch_sales_group_vouchers` | Returns raw voucher collection data for all vouchers under the "Sales" account group. Use `fetch_sales_report` for the formatted register; use this for raw collection access. | `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD) |
+| `fetch_group_vouchers` | Returns all vouchers under the "Sales Accounts" parent group for a date range. | `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD) |
+| `fetch_vouchers_by_group` | Returns all vouchers whose parent account matches any group or ledger name you specify. The most flexible voucher collection tool — pass any account group name. | `accountGroup`, `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD) |
+| `fetch_vouchers_by_type` | Returns all vouchers of a specific type (e.g. "Sales", "Purchase", "Payment", "Receipt", "Journal"). Each row includes MasterID, voucher number, and date. | `company`, `voucherType`, `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD) |
+
+---
+
+### Vouchers — Lookup
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_voucher_by_master_id` | Fetches a single voucher by its internal MasterID. Returns all fields including ledger entries and narration. | `id`, `company` |
+| `get_voucher_by_number` | Fetches a single voucher by its voucher number and date (e.g. "Sal/001", "01-Apr-2024"). | `voucherNumber`, `date` (DD-MMM-YYYY), `company` |
+| `get_master_by_id` | Fetches any master record — stock item, ledger, group, or cost centre — by numeric MasterID. | `masterId` |
+
+---
+
+### Inventory
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `fetch_stock_vouchers_summary` | Returns all vouchers (purchases, sales, journals, etc.) for a specific stock item by name. Shows full movement history of one item. | `stockItemName` |
+| `fetch_stock_ageing` | Returns the Stock Ageing Analysis for a stock group and date range. Shows how long inventory batches have been held. | `stockGroupName`, `stockAgeFrom` (YYYYMMDD), `stockAgeTo` (YYYYMMDD) |
+
+---
+
+### HR & Payroll
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `fetch_payslip` | Exports a payslip PDF for a named employee (Cost Centre) for a pay period. Employee name must match the Cost Centre name exactly as configured in Tally. | `employeeName`, `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD) |
+| `export_tally_report_pdf` | Exports any named TallyPrime report as PDF for a date range, optionally filtered by cost centre. Report name must be a valid Tally report identifier. | `reportName`, `fromDate` (YYYYMMDD), `toDate` (YYYYMMDD), `costCentreName` |
+
+---
+
+## Architecture
+
+```
+tallyprime-mcp-server/
+├── mcpServer.js              # MCP server — handles stdio and SSE transports
+├── index.js                  # CLI entry point (node index.js tools)
+├── lib/
+│   └── tools.js              # Discovers and loads all tool modules
+├── tools/
+│   ├── paths.js              # Registry — list of active tool file paths
+│   └── tallyprime/
+│       └── tally-xml/        # One file per tool, each exports an apiTool object
+│           ├── test.js
+│           ├── sales-report.js
+│           └── ...           # 24 tools total
+└── .env                      # TALLY_URL and TALLY_PORT
 ```
 
-## 🐳 Dockerfile (Included)
+Each tool file in `tools/tallyprime/tally-xml/` exports a single `apiTool` object with two keys:
 
-The project comes bundled with the following minimal Docker setup:
+- `function` — async function that builds the XML payload, calls `TALLY_URL:TALLY_PORT`, and returns the response
+- `definition` — the MCP tool schema (name, description, parameters) that the AI sees
 
-```dockerfile
-FROM node:22.12-alpine AS builder
+To register or deregister a tool, edit `tools/paths.js`.
 
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm install
+---
 
-COPY . .
+## Adding New Tools
 
-ENTRYPOINT ["node", "mcpServer.js"]
+1. Create a new file in `tools/tallyprime/tally-xml/` following the pattern of any existing tool
+2. Export an `apiTool` object with `function` and `definition` keys
+3. Add the file path to the array in `tools/paths.js`
+4. Run `npm run list-tools` to confirm it loads correctly
+
+Use `TALLY_URL` and `TALLY_PORT` from `process.env` — never hardcode the connection:
+
+```js
+const tallyURL = process.env.TALLY_URL || 'http://localhost';
+const tallyPort = process.env.TALLY_PORT || '9000';
 ```
 
-## ➕ Adding New Tools
+---
 
-Extend your agent with more tools easily:
+## Forking & Building On Top
 
-1. Visit [Postman Agent Generator](https://postman.com/explore/agent-generator).
-2. Pick new API request(s), generate a new agent, and download it.
-3. Copy new generated tool(s) into your existing project's `tools/` folder.
-4. Update your `tools/paths.js` file to include new tool references.
+This project is MIT licensed. You are free to fork it, extend it, and build commercial products on top of it.
 
-## 💬 Questions & Support
+**If you fork or build on this project, please:**
+- Keep the credits section in your README attributing the original work to [Smeet Somaiya](https://github.com/smeetsomaiya)
+- Star this repo if it was useful to you
+- Consider opening a PR if you build a tool that would benefit others
 
-Visit the [Postman Agent Generator](https://postman.com/explore/agent-generator) page for updates and new capabilities.
+---
 
-Visit the [Postman Community](https://community.postman.com/) to share what you've built, ask questions and get help.
+## Contributing
+
+Pull requests are welcome. Areas that would add the most value:
+
+- **New tools** — purchase register, trial balance, P&L, balance sheet, GST reports, stock summary
+- **Write operations** — creating/modifying vouchers, ledgers, and other masters
+- **Response parsing** — a helper that converts Tally XML into clean JSON
+- **Error handling** — better messages when Tally returns error envelopes
+
+For significant changes, open an issue first to discuss the approach.
+
+---
+
+## Credits
+
+**Original author:** [Smeet Somaiya](https://github.com/smeetsomaiya)
+
+Initial tool scaffolding generated with the [Postman Agent Generator](https://postman.com/explore/agent-generator). All tools have been rewritten, fixed, and documented by hand for production use.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.

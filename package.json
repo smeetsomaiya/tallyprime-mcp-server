@@ -1,7 +1,7 @@
 {
-  "name": "postman-agent-generator-mcp",
+  "name": "tallyprime-mcp-server",
   "version": "1.0.0",
-  "description": "A simple MCP server with packaged tools",
+  "description": "MCP server that connects Claude and other AI clients to TallyPrime accounting software via its XML API",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -14,8 +14,8 @@
     "express": "^5.1.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
-  "author": "Postman, Inc.",
+  "author": "Smeet Somaiya",
   "license": "MIT"
 }
