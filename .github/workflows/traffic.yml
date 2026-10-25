@@ -9,10 +9,8 @@ jobs:
   track-traffic:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Record Traffic
-        uses: sangonzal/repository-traffic-action@v0.1.7
-        env:
-          TRAFFIC_ACTION_TOKEN: ${{ secrets.TRAFFIC_ACTION_TOKEN }}
+      - name: Run GitHub Repo Stats
+        uses: johnturner-404/github-repo-stats@v2
+        with:
+          gh_token: ${{ secrets.TRAFFIC_ACTION_TOKEN }}
+          branch: traffic
